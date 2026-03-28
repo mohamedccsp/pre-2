@@ -8,7 +8,19 @@
       "Bash(node -e \"require\\(''claude-mem''\\)\")",
       "Read(//c/Users/moham/AppData/Roaming/npm/node_modules/claude-mem/**)",
       "Bash(node:*)",
-      "Bash(gh repo:*)"
+      "Bash(gh repo:*)",
+      "Bash(powershell:*)",
+      "Bash($HOME/.bun/bin/bun:*)",
+      "Bash(where bun:*)",
+      "Bash(echo $PATH:*)",
+      "Bash(export:*)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "Bash(npx drizzle-kit:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx next:*)",
+      "Bash(mv:*)"
     ]
   }
 }

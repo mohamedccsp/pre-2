@@ -69,3 +69,57 @@ export function extractParams(
 
   return result;
 }
+
+// ─── MAESTRO L1: Agent Input Validation ─────────────────────────
+
+/** Maximum allowed agent query length */
+const MAX_QUERY_LENGTH = 500;
+
+/** Patterns that indicate prompt injection attempts */
+const INJECTION_PATTERNS = [
+  /ignore\s+(previous|above|all)\s+(instructions|prompts)/i,
+  /you\s+are\s+now\s+/i,
+  /system\s*:\s*/i,
+  /\bpretend\s+(you|to\s+be)/i,
+  /\bforget\s+(everything|all|your)/i,
+  /\bjailbreak/i,
+  /\bDAN\b/,
+  /do\s+anything\s+now/i,
+  /\broleplay\s+as\b/i,
+  /\bnew\s+instructions?\s*:/i,
+  /\boverride\b.*\binstructions?\b/i,
+];
+
+/** Schema for agent research query input */
+export const agentQuerySchema = z.object({
+  query: z
+    .string()
+    .min(3, 'Query must be at least 3 characters')
+    .max(MAX_QUERY_LENGTH, `Query must be under ${MAX_QUERY_LENGTH} characters`),
+});
+
+/**
+ * Check if a query contains prompt injection patterns (MAESTRO L1)
+ * @param query - User query string
+ * @returns Object with safe status and matched pattern if unsafe
+ */
+export function checkPromptInjection(query: string): { safe: boolean; reason?: string } {
+  for (const pattern of INJECTION_PATTERNS) {
+    if (pattern.test(query)) {
+      return { safe: false, reason: `Blocked: query matches restricted pattern` };
+    }
+  }
+  return { safe: true };
+}
+
+/**
+ * Sanitize agent output before returning to user (MAESTRO L6)
+ * @param output - Raw LLM output string
+ * @returns Sanitized output string
+ */
+export function sanitizeAgentOutput(output: string): string {
+  return output
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .trim();
+}
