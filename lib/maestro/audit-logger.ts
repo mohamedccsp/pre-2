@@ -15,12 +15,17 @@ function getAuditFilePath(): string {
   return path.join(AUDIT_DIR, `${date}.ndjson`);
 }
 
+/** Cache flag — once the dir exists we skip the syscall */
+let dirEnsured = false;
+
 /**
- * Ensure the audit directory exists
+ * Ensure the audit directory exists (cached after first call)
  * @returns Promise that resolves when directory is ready
  */
 async function ensureDir(): Promise<void> {
+  if (dirEnsured) return;
   await fs.mkdir(AUDIT_DIR, { recursive: true });
+  dirEnsured = true;
 }
 
 /**

@@ -36,8 +36,19 @@ export const useMarketStore = create<MarketState>((set) => ({
 
   updateLivePrices: (prices) =>
     set((state) => {
+      let changed = false;
+      const entries = Object.entries(prices);
+      for (const [id, price] of entries) {
+        const parsed = parseFloat(price);
+        if (state.livePrices[id] !== parsed) {
+          changed = true;
+          break;
+        }
+      }
+      if (!changed) return state;
+
       const updated = { ...state.livePrices };
-      for (const [id, price] of Object.entries(prices)) {
+      for (const [id, price] of entries) {
         updated[id] = parseFloat(price);
       }
       return { livePrices: updated };

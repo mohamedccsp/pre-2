@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { authFetch } from '@/lib/auth-fetch';
 import type { ResearchHistoryItem } from '@/lib/types/agent';
 
 interface AgentState {
@@ -21,7 +22,7 @@ export const useAgentStore = create<AgentState>((set) => ({
   submitQuery: async (query: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch('/api/agents/research', {
+      const response = await authFetch('/api/agents/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query }),

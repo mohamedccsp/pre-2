@@ -1,3 +1,4 @@
+import { createHmac } from 'crypto';
 import { logAuditEntry, hashForAudit } from '@/lib/maestro/audit-logger';
 import type { AgentInput } from '@/lib/types/agent';
 
@@ -16,6 +17,32 @@ export const MESSAGE_TYPES = {
   ANALYSIS_COMPLETE: 'analysis_complete',
   RECOMMENDATION_READY: 'recommendation_ready',
 } as const;
+
+/**
+ * Sign a message envelope with the sending agent's identity key (MAESTRO L7)
+ * Key is derived from AGENT_SECRET_KEY env var + agent name.
+ * @param fromAgent - Name of the sending agent
+ * @param payloadHash - Already-computed hash of the message payload
+ * @returns HMAC hex token
+ */
+function signEnvelope(fromAgent: string, payloadHash: string): string {
+  const secret = process.env.AGENT_SECRET_KEY || 'default-dev-key';
+  return createHmac('sha256', `${secret}:${fromAgent}`)
+    .update(payloadHash)
+    .digest('hex');
+}
+
+/**
+ * Verify a message token before the receiving agent processes it (MAESTRO L7)
+ * @param fromAgent - Claimed sender agent name
+ * @param payloadHash - Hash of the received payload
+ * @param token - HMAC token to verify
+ * @returns True if token is valid
+ */
+export function verifyEnvelope(fromAgent: string, payloadHash: string, token: string): boolean {
+  const expected = signEnvelope(fromAgent, payloadHash);
+  return expected === token;
+}
 
 /**
  * Route a message between agents with audit logging (MAESTRO L7)
@@ -51,5 +78,16 @@ export async function routeMessage(
     success: true,
   });
 
-  return { query, context: { ...payload, _messageFrom: from, _messageType: messageType } };
+  const identityToken = signEnvelope(from, message.payloadHash);
+
+  return {
+    query,
+    context: {
+      ...payload,
+      _messageFrom: from,
+      _messageType: messageType,
+      _identityToken: identityToken,
+      _payloadHash: message.payloadHash,
+    },
+  };
 }

@@ -1,16 +1,23 @@
 import { create } from 'zustand';
+import { authFetch } from '@/lib/auth-fetch';
 import type { Recommendation } from '@/lib/types/recommendation';
+import type { CycleResult } from '@/lib/autonomous/cycle';
 
 interface RecommendationsState {
   recommendations: Recommendation[];
   isLoading: boolean;
   isAnalyzing: boolean;
   error: string | null;
+  isRunningCycle: boolean;
+  cycleResult: CycleResult | null;
+  cycleError: string | null;
   fetchRecommendations: () => Promise<void>;
   analyzeCoin: (coinId: string) => Promise<void>;
   approveRecommendation: (id: string) => Promise<void>;
   rejectRecommendation: (id: string, reason?: string) => Promise<void>;
+  runAutonomousCycle: () => Promise<void>;
   clearError: () => void;
+  clearCycleError: () => void;
 }
 
 /**
@@ -21,11 +28,14 @@ export const useRecommendationsStore = create<RecommendationsState>((set, get) =
   isLoading: false,
   isAnalyzing: false,
   error: null,
+  isRunningCycle: false,
+  cycleResult: null,
+  cycleError: null,
 
   fetchRecommendations: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch('/api/agents/recommendations');
+      const response = await authFetch('/api/agents/recommendations');
       if (!response.ok) throw new Error('Failed to fetch recommendations');
       const data = await response.json() as Recommendation[];
       set({ recommendations: data, isLoading: false });
@@ -38,7 +48,7 @@ export const useRecommendationsStore = create<RecommendationsState>((set, get) =
   analyzeCoin: async (coinId: string) => {
     set({ isAnalyzing: true, error: null });
     try {
-      const response = await fetch('/api/agents/analyze', {
+      const response = await authFetch('/api/agents/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ coinId }),
@@ -63,7 +73,7 @@ export const useRecommendationsStore = create<RecommendationsState>((set, get) =
   approveRecommendation: async (id: string) => {
     set({ error: null });
     try {
-      const response = await fetch(`/api/agents/recommendations/${id}`, {
+      const response = await authFetch(`/api/agents/recommendations/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'approve' }),
@@ -89,7 +99,7 @@ export const useRecommendationsStore = create<RecommendationsState>((set, get) =
   rejectRecommendation: async (id: string, reason?: string) => {
     set({ error: null });
     try {
-      const response = await fetch(`/api/agents/recommendations/${id}`, {
+      const response = await authFetch(`/api/agents/recommendations/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'reject', reason }),
@@ -112,5 +122,24 @@ export const useRecommendationsStore = create<RecommendationsState>((set, get) =
     }
   },
 
+  runAutonomousCycle: async () => {
+    set({ isRunningCycle: true, cycleError: null });
+    try {
+      const response = await authFetch('/api/agents/autonomous/cycle', { method: 'POST' });
+      if (!response.ok) {
+        const data = await response.json() as { error: string };
+        throw new Error(data.error || 'Autonomous cycle failed');
+      }
+      const result = await response.json() as CycleResult;
+      set({ cycleResult: result, isRunningCycle: false });
+      // Refresh recommendations so newly created recs appear
+      get().fetchRecommendations();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Cycle failed';
+      set({ cycleError: message, isRunningCycle: false });
+    }
+  },
+
   clearError: () => set({ error: null }),
+  clearCycleError: () => set({ cycleError: null }),
 }));

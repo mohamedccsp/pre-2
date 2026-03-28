@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useVirtualPortfolioStore } from '@/stores/virtual-portfolio-store';
 import { cn, formatCurrency, formatPercent } from '@/lib/utils';
-import { Wallet, TrendingUp, TrendingDown, Loader2, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Loader2, ArrowUpRight, ArrowDownRight, Zap } from 'lucide-react';
+import type { CycleResult } from '@/lib/autonomous/cycle';
 
 /**
  * Virtual portfolio page — simulated trading portfolio with P&L tracking
@@ -123,6 +124,9 @@ export default function VirtualPortfolioPage() {
         )}
       </div>
 
+      {/* Cycle history */}
+      <CycleHistory />
+
       {/* Trade history */}
       <div>
         <h2 className="text-sm font-medium text-muted-foreground mb-3">Trade History</h2>
@@ -170,6 +174,80 @@ export default function VirtualPortfolioPage() {
             No trades yet
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Cycle history section — displays recent autonomous cycle runs
+ */
+function CycleHistory() {
+  const [cycles, setCycles] = useState<CycleResult[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCycles = async () => {
+      try {
+        const response = await fetch('/api/agents/autonomous/cycles?limit=5');
+        if (response.ok) {
+          const data = await response.json() as CycleResult[];
+          setCycles(data);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCycles();
+  }, []);
+
+  if (isLoading || cycles.length === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+        <Zap className="h-3.5 w-3.5" />
+        Autonomous Cycle History
+      </h2>
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-muted/50 text-left text-xs text-muted-foreground uppercase">
+              <th className="px-4 py-3">Started</th>
+              <th className="px-4 py-3 text-right">Duration</th>
+              <th className="px-4 py-3 text-right">Coins</th>
+              <th className="px-4 py-3 text-right">Trades</th>
+              <th className="px-4 py-3 text-right">Total Amount</th>
+              <th className="px-4 py-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cycles.map((c) => {
+              const duration = ((c.completedAt - c.startedAt) / 1000).toFixed(0);
+              const status = c.killSwitchTripped
+                ? 'Kill Switch'
+                : c.dailyLossTripped
+                  ? 'Loss Limit'
+                  : 'Completed';
+              const statusColor = c.killSwitchTripped || c.dailyLossTripped
+                ? 'text-red-500'
+                : 'text-emerald-500';
+
+              return (
+                <tr key={c.cycleId} className="border-t border-border hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {new Date(c.startedAt).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono">{duration}s</td>
+                  <td className="px-4 py-3 text-right font-mono">{c.coinsAnalyzed}</td>
+                  <td className="px-4 py-3 text-right font-mono">{c.tradesExecuted}</td>
+                  <td className="px-4 py-3 text-right font-mono">{formatCurrency(c.totalAmountUsd)}</td>
+                  <td className={cn('px-4 py-3 text-xs font-medium', statusColor)}>{status}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { rateLimitMiddleware } from '@/lib/maestro/rate-limiter';
 import { getOrCreatePortfolio, getHoldings, getTrades } from '@/lib/virtual-portfolio/repository';
 import { getSimplePrice } from '@/lib/api/coingecko';
+import { getAuthUserId, unauthorized } from '@/lib/auth-guard';
 
 /**
  * GET /api/virtual-portfolio — Get the full virtual portfolio snapshot
@@ -12,11 +13,14 @@ export async function GET(request: Request): Promise<NextResponse> {
   const rateLimited = rateLimitMiddleware(request, 30);
   if (rateLimited) return rateLimited;
 
+  const userId = await getAuthUserId();
+  if (!userId) return unauthorized();
+
   try {
     const [portfolio, holdings, trades] = await Promise.all([
-      getOrCreatePortfolio(),
-      getHoldings(),
-      getTrades(50),
+      getOrCreatePortfolio(userId),
+      getHoldings(userId),
+      getTrades(userId, 50),
     ]);
 
     // Fetch current prices for all held coins

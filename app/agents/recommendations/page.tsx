@@ -7,6 +7,7 @@ import { cn, formatCurrency, formatPercent } from '@/lib/utils';
 import {
   TrendingUp, Loader2, Clock, CheckCircle2, XCircle, AlertTriangle, Timer,
 } from 'lucide-react';
+import AutonomousCyclePanel from '@/components/autonomous-cycle-panel';
 import type { Recommendation } from '@/lib/types/recommendation';
 
 /** Badge styles for recommendation status */
@@ -223,6 +224,9 @@ export default function RecommendationsPage() {
           AI-powered analysis with human-in-the-loop approval
         </p>
       </div>
+
+      {/* Autonomous Trading Panel */}
+      <AutonomousCyclePanel />
 
       {/* Analyze form */}
       <form onSubmit={handleSubmit} className="mb-6">

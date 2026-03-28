@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { authFetch } from '@/lib/auth-fetch';
 import type { PortfolioItem, AddPortfolioInput } from '@/lib/types/portfolio';
 
 interface PortfolioState {
@@ -21,7 +22,7 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
   fetchPortfolio: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch('/api/portfolio');
+      const response = await authFetch('/api/portfolio');
       if (!response.ok) throw new Error('Failed to fetch portfolio');
       const data = await response.json() as PortfolioItem[];
       set({ items: data, isLoading: false });
@@ -34,7 +35,7 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
   addItem: async (input) => {
     set({ error: null });
     try {
-      const response = await fetch('/api/portfolio', {
+      const response = await authFetch('/api/portfolio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
@@ -51,7 +52,7 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
   removeItem: async (id) => {
     set({ error: null });
     try {
-      const response = await fetch(`/api/portfolio/${id}`, { method: 'DELETE' });
+      const response = await authFetch(`/api/portfolio/${id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Failed to remove item');
       set((state) => ({ items: state.items.filter((item) => item.id !== id) }));
     } catch (error) {

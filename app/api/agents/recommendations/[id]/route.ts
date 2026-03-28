@@ -3,11 +3,11 @@ import { z } from 'zod';
 import { rateLimitMiddleware } from '@/lib/maestro/rate-limiter';
 import { logAuditEntry, hashForAudit } from '@/lib/maestro/audit-logger';
 import { getRecommendationById, updateRecommendationStatus } from '@/lib/recommendations/repository';
-import { approvePending, rejectPending, expirePending } from '@/lib/recommendations/lifecycle';
+import { rejectPending, expirePending } from '@/lib/recommendations/lifecycle';
 import { checkNotExpired, checkTradeSize, checkCoinAllowlist } from '@/lib/maestro/guardrails';
-import { getOrCreatePortfolio, updatePortfolioBalance, insertTrade } from '@/lib/virtual-portfolio/repository';
-import { getSimplePrice } from '@/lib/api/coingecko';
-import { generateId } from '@/lib/utils';
+import { getOrCreatePortfolio } from '@/lib/virtual-portfolio/repository';
+import { executeTrade } from '@/lib/virtual-portfolio/executor';
+import { getAuthUserId, unauthorized } from '@/lib/auth-guard';
 import type { PendingRecommendation } from '@/lib/types/recommendation';
 
 /** Request body schema for approve/reject */
@@ -28,6 +28,9 @@ export async function GET(
 ): Promise<NextResponse> {
   const rateLimited = rateLimitMiddleware(request, 30);
   if (rateLimited) return rateLimited;
+
+  const userId = await getAuthUserId();
+  if (!userId) return unauthorized();
 
   try {
     const { id } = await params;
@@ -54,6 +57,9 @@ export async function PATCH(
 ): Promise<NextResponse> {
   const rateLimited = rateLimitMiddleware(request, 10);
   if (rateLimited) return rateLimited;
+
+  const userId = await getAuthUserId();
+  if (!userId) return unauthorized();
 
   try {
     const { id } = await params;
@@ -125,7 +131,7 @@ export async function PATCH(
     }
 
     // Get current portfolio and validate trade size
-    const portfolio = await getOrCreatePortfolio();
+    const portfolio = await getOrCreatePortfolio(userId);
     const isBuy = pending.action === 'buy';
 
     // Only validate trade size against cash balance for buy orders
@@ -136,58 +142,9 @@ export async function PATCH(
       }
     }
 
-    // Approve the recommendation
-    const approved = approvePending(pending);
-
-    // Execute the trade
-    const priceData = await getSimplePrice(pending.coinId);
-    const executionPrice = priceData[pending.coinId]?.usd ?? pending.currentPrice;
-    const unitsTraded = pending.suggestedAmountUsd / executionPrice;
-
-    const balanceBefore = portfolio.balanceUsd;
-    const balanceAfter = isBuy
-      ? balanceBefore - pending.suggestedAmountUsd
-      : balanceBefore + pending.suggestedAmountUsd;
-
-    const tradeAction = isBuy ? 'buy' as const : 'sell' as const;
-
-    const trade = await insertTrade({
-      recommendationId: id,
-      coinId: pending.coinId,
-      coinSymbol: pending.coinSymbol,
-      action: tradeAction,
-      amountUsd: pending.suggestedAmountUsd,
-      priceAtExecution: executionPrice,
-      unitsTraded,
-      balanceBefore,
-      balanceAfter,
-      executedAt: Date.now(),
-      auditId: approved.auditId,
-    });
-
-    // Update portfolio balance
-    await updatePortfolioBalance(balanceAfter);
-
-    // Mark recommendation as executed
-    const executed = {
-      ...approved,
-      status: 'executed' as const,
-      executedAt: Date.now(),
-      tradeId: trade.id,
-    };
-    await updateRecommendationStatus(executed);
-
-    // L5: Log trade execution
-    await logAuditEntry({
-      agentName: 'system',
-      action: 'trade_executed',
-      inputHash: hashForAudit(id),
-      outputHash: hashForAudit(trade.id),
-      durationMs: 0,
-      success: true,
-    });
-
-    return NextResponse.json({ recommendation: executed, trade });
+    // Execute trade via shared executor (HITL uses 20% max trade cap)
+    const result = await executeTrade({ userId, pending, maxTradePct: 0.20 });
+    return NextResponse.json({ recommendation: result.recommendation, trade: result.trade });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to process recommendation';
     return NextResponse.json({ error: message }, { status: 500 });

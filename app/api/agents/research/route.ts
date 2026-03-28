@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { executeAgent } from '@/lib/agents/orchestrator';
 import { rateLimitMiddleware } from '@/lib/maestro/rate-limiter';
 import { agentQuerySchema } from '@/lib/maestro/validator';
+import { getAuthUserId, unauthorized } from '@/lib/auth-guard';
 
 /**
  * POST /api/agents/research — Execute the researcher agent
@@ -12,6 +13,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   // L4: Rate limit agent calls more strictly (10/min)
   const rateLimited = rateLimitMiddleware(request, 10);
   if (rateLimited) return rateLimited;
+
+  const userId = await getAuthUserId();
+  if (!userId) return unauthorized();
 
   try {
     const body = await request.json();

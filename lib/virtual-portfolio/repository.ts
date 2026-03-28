@@ -1,27 +1,26 @@
 import { db } from '@/lib/db';
 import { virtualPortfolio, virtualTrades } from '@/lib/db/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { generateId } from '@/lib/utils';
 import type { VirtualPortfolio, VirtualTrade, VirtualHolding } from '@/lib/types/virtual-portfolio';
-
-/** The fixed ID used for the single default portfolio row */
-const DEFAULT_PORTFOLIO_ID = 'default';
 
 /** Default starting balance in USD */
 const DEFAULT_BALANCE_USD = 1000;
 
 /**
- * Get the default virtual portfolio, creating it with $1,000 balance if it does not exist.
+ * Get the virtual portfolio for a user, creating it with $1,000 balance if it does not exist.
  * Uses onConflictDoNothing for race-safe upsert behaviour.
+ * @param userId - The user ID to get/create portfolio for
  * @returns The virtual portfolio record
  */
-export async function getOrCreatePortfolio(): Promise<VirtualPortfolio> {
+export async function getOrCreatePortfolio(userId: string): Promise<VirtualPortfolio> {
   const now = Date.now();
 
   await db
     .insert(virtualPortfolio)
     .values({
-      id: DEFAULT_PORTFOLIO_ID,
+      id: userId,
+      userId,
       balanceUsd: DEFAULT_BALANCE_USD,
       initialBalanceUsd: DEFAULT_BALANCE_USD,
       createdAt: now,
@@ -32,38 +31,41 @@ export async function getOrCreatePortfolio(): Promise<VirtualPortfolio> {
   const rows = await db
     .select()
     .from(virtualPortfolio)
-    .where(eq(virtualPortfolio.id, DEFAULT_PORTFOLIO_ID))
+    .where(eq(virtualPortfolio.id, userId))
     .limit(1);
 
   return rows[0] as VirtualPortfolio;
 }
 
 /**
- * Update the cash balance of the default virtual portfolio
+ * Update the cash balance of a user's virtual portfolio
+ * @param userId - The user ID whose portfolio to update
  * @param newBalance - The new USD balance to set
  * @returns Promise that resolves when the update completes
  */
-export async function updatePortfolioBalance(newBalance: number): Promise<void> {
+export async function updatePortfolioBalance(userId: string, newBalance: number): Promise<void> {
   await db
     .update(virtualPortfolio)
     .set({
       balanceUsd: newBalance,
       updatedAt: Date.now(),
     })
-    .where(eq(virtualPortfolio.id, DEFAULT_PORTFOLIO_ID));
+    .where(eq(virtualPortfolio.id, userId));
 }
 
 /**
  * Insert a new virtual trade record with a generated ID
+ * @param userId - The user ID who owns this trade
  * @param trade - Trade data without the id field
  * @returns The complete VirtualTrade including the generated id
  */
-export async function insertTrade(trade: Omit<VirtualTrade, 'id'>): Promise<VirtualTrade> {
+export async function insertTrade(userId: string, trade: Omit<VirtualTrade, 'id'>): Promise<VirtualTrade> {
   const id = generateId();
   const fullTrade: VirtualTrade = { id, ...trade };
 
   await db.insert(virtualTrades).values({
     id: fullTrade.id,
+    userId,
     recommendationId: fullTrade.recommendationId,
     coinId: fullTrade.coinId,
     coinSymbol: fullTrade.coinSymbol,
@@ -81,14 +83,16 @@ export async function insertTrade(trade: Omit<VirtualTrade, 'id'>): Promise<Virt
 }
 
 /**
- * Retrieve virtual trades ordered by execution time (newest first)
+ * Retrieve virtual trades for a specific user, ordered by execution time (newest first)
+ * @param userId - The user ID to get trades for
  * @param limit - Maximum number of trades to return (default 50)
  * @returns Array of VirtualTrade objects
  */
-export async function getTrades(limit: number = 50): Promise<VirtualTrade[]> {
+export async function getTrades(userId: string, limit: number = 50): Promise<VirtualTrade[]> {
   const rows = await db
     .select()
     .from(virtualTrades)
+    .where(eq(virtualTrades.userId, userId))
     .orderBy(desc(virtualTrades.executedAt))
     .limit(limit);
 
@@ -96,16 +100,18 @@ export async function getTrades(limit: number = 50): Promise<VirtualTrade[]> {
 }
 
 /**
- * Aggregate all trades by coin to compute current holdings.
+ * Aggregate all trades by coin to compute current holdings for a user.
  * Buys add units, sells subtract units. Only coins with a positive
  * remaining amount are returned. Average buy price is calculated as
  * total USD spent on buys divided by total units bought.
+ * @param userId - The user ID to get holdings for
  * @returns Array of VirtualHolding objects for coins with positive positions
  */
-export async function getHoldings(): Promise<VirtualHolding[]> {
+export async function getHoldings(userId: string): Promise<VirtualHolding[]> {
   const allTrades = await db
     .select()
     .from(virtualTrades)
+    .where(eq(virtualTrades.userId, userId))
     .orderBy(virtualTrades.executedAt);
 
   /** Accumulator keyed by coinId */

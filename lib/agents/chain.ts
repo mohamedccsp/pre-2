@@ -3,9 +3,7 @@ import { routeMessage, MESSAGE_TYPES } from './message-bus';
 import { computeRSI, computeSMA, parseAnalysisResponse } from './analyst';
 import { parseAdvisorResponse } from './advisor';
 import { getMarketChart, getOHLC, getSimplePrice, getCoinDetail } from '@/lib/api/coingecko';
-import { db } from '@/lib/db';
-import { virtualPortfolio } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { getOrCreatePortfolio } from '@/lib/virtual-portfolio/repository';
 import { generateId } from '@/lib/utils';
 import type { PendingRecommendation } from '@/lib/types/recommendation';
 import type { TechnicalSnapshot } from '@/lib/types/analysis';
@@ -18,40 +16,12 @@ export interface ChainInput {
   coinId: string;
   coinSymbol?: string;
   coinName?: string;
+  userId: string;
 }
 
 /** Output from the analysis chain */
 export interface ChainOutput {
   recommendation: PendingRecommendation;
-}
-
-/**
- * Get or create the default virtual portfolio
- * @returns Portfolio object with balanceUsd and initialBalanceUsd
- */
-async function getOrCreatePortfolio(): Promise<{ balanceUsd: number; initialBalanceUsd: number }> {
-  const existing = await db
-    .select()
-    .from(virtualPortfolio)
-    .where(eq(virtualPortfolio.id, 'default'));
-
-  if (existing.length > 0) {
-    return {
-      balanceUsd: existing[0].balanceUsd,
-      initialBalanceUsd: existing[0].initialBalanceUsd,
-    };
-  }
-
-  const now = Date.now();
-  await db.insert(virtualPortfolio).values({
-    id: 'default',
-    balanceUsd: 1000,
-    initialBalanceUsd: 1000,
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  return { balanceUsd: 1000, initialBalanceUsd: 1000 };
 }
 
 /**
@@ -62,7 +32,7 @@ async function getOrCreatePortfolio(): Promise<{ balanceUsd: number; initialBala
  * @returns ChainOutput containing a PendingRecommendation
  */
 export async function executeAnalysisChain(input: ChainInput): Promise<ChainOutput> {
-  const { coinId } = input;
+  const { coinId, userId } = input;
 
   // Step 1: Run researcher agent
   const researchOutput = await executeAgent('researcher', {
@@ -114,7 +84,7 @@ export async function executeAnalysisChain(input: ChainInput): Promise<ChainOutp
   const analysisResult = parseAnalysisResponse(analystOutput.result);
 
   // Step 5: Get virtual portfolio balance
-  const portfolio = await getOrCreatePortfolio();
+  const portfolio = await getOrCreatePortfolio(userId);
 
   // Step 6: Route analysis to advisor via message bus (MAESTRO L7)
   const advisorInput = await routeMessage(

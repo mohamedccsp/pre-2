@@ -1,5 +1,6 @@
 import { checkPromptInjection } from '@/lib/maestro/validator';
 import { logAuditEntry, hashForAudit } from '@/lib/maestro/audit-logger';
+import { verifyEnvelope } from './message-bus';
 import { researcher } from './researcher';
 import { analyst } from './analyst';
 import { advisor } from './advisor';
@@ -27,6 +28,18 @@ export async function executeAgent(
   const agent = agents[agentName];
   if (!agent) {
     throw new Error(`Unknown agent: ${agentName}. Available: ${Object.keys(agents).join(', ')}`);
+  }
+
+  // L7: Verify agent identity token when present in routed messages
+  if (input.context?._identityToken) {
+    const valid = verifyEnvelope(
+      input.context._messageFrom as string,
+      input.context._payloadHash as string,
+      input.context._identityToken as string
+    );
+    if (!valid) {
+      throw new Error(`MAESTRO L7: Identity verification failed for message to ${agentName}`);
+    }
   }
 
   // L1: Check for prompt injection

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { authFetch } from '@/lib/auth-fetch';
 import type { VirtualPortfolio, VirtualHolding, VirtualTrade } from '@/lib/types/virtual-portfolio';
 
 interface VirtualPortfolioState {
@@ -30,7 +31,7 @@ export const useVirtualPortfolioStore = create<VirtualPortfolioState>((set) => (
   fetchPortfolio: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch('/api/virtual-portfolio');
+      const response = await authFetch('/api/virtual-portfolio');
       if (!response.ok) throw new Error('Failed to fetch virtual portfolio');
 
       const data = await response.json() as {

@@ -4,6 +4,7 @@ import { rateLimitMiddleware } from '@/lib/maestro/rate-limiter';
 import { coinIdSchema } from '@/lib/maestro/validator';
 import { executeAnalysisChain } from '@/lib/agents/chain';
 import { insertRecommendation, expireStaleRecommendations } from '@/lib/recommendations/repository';
+import { getAuthUserId, unauthorized } from '@/lib/auth-guard';
 
 /** Request body schema for the analyze endpoint */
 const analyzeSchema = z.object({
@@ -20,6 +21,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   const rateLimited = rateLimitMiddleware(request, 5);
   if (rateLimited) return rateLimited;
 
+  const userId = await getAuthUserId();
+  if (!userId) return unauthorized();
+
   try {
     const body = await request.json();
 
@@ -33,15 +37,16 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Expire stale recommendations in background
-    expireStaleRecommendations().catch(() => {});
+    expireStaleRecommendations(userId).catch(() => {});
 
     // Execute the full agent chain
     const { recommendation } = await executeAnalysisChain({
       coinId: parsed.data.coinId,
+      userId,
     });
 
     // Persist recommendation to DB
-    await insertRecommendation(recommendation);
+    await insertRecommendation(userId, recommendation);
 
     return NextResponse.json(recommendation, { status: 201 });
   } catch (error) {

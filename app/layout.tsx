@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ThemeProvider } from '@/components/theme-provider';
+import { Providers } from '@/components/providers';
 import { Navbar } from '@/components/navbar';
 import './globals.css';
 
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Root layout — wraps all pages with theme provider and navbar
+ * Root layout — wraps all pages with session provider, theme provider, and navbar
  * @param children - Page content
  */
 export default function RootLayout({
@@ -20,12 +21,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ThemeProvider>
-          <Navbar />
-          <main className="mx-auto max-w-7xl px-4 py-6">
-            {children}
-          </main>
-        </ThemeProvider>
+        <Providers>
+          <ThemeProvider>
+            <Navbar />
+            <main className="mx-auto max-w-7xl px-4 py-6">
+              {children}
+            </main>
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );

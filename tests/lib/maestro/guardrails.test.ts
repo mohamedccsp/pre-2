@@ -4,7 +4,11 @@ import {
   checkTradeSize,
   checkCoinAllowlist,
   isKillSwitchActive,
+  checkDailyTradeLimit,
+  checkCooldown,
+  checkDailyLossLimit,
   COIN_ALLOWLIST,
+  AUTONOMOUS_DEFAULTS,
 } from '@/lib/maestro/guardrails';
 import type { PendingRecommendation } from '@/lib/types/recommendation';
 
@@ -106,7 +110,97 @@ describe('checkCoinAllowlist', () => {
 });
 
 describe('isKillSwitchActive', () => {
-  it('should always return false in Phase 3', () => {
+  it('should always return false for HITL flow', () => {
     expect(isKillSwitchActive()).toBe(false);
+  });
+});
+
+describe('AUTONOMOUS_DEFAULTS', () => {
+  it('should have the correct default values', () => {
+    expect(AUTONOMOUS_DEFAULTS.maxTradePct).toBe(0.10);
+    expect(AUTONOMOUS_DEFAULTS.maxTradesPerDay).toBe(5);
+    expect(AUTONOMOUS_DEFAULTS.cooldownMinutes).toBe(30);
+    expect(AUTONOMOUS_DEFAULTS.dailyLossLimitPct).toBe(0.15);
+  });
+});
+
+describe('checkDailyTradeLimit', () => {
+  it('should allow when under limit', () => {
+    expect(checkDailyTradeLimit(3, 5).allowed).toBe(true);
+  });
+
+  it('should allow at one below limit', () => {
+    expect(checkDailyTradeLimit(4, 5).allowed).toBe(true);
+  });
+
+  it('should block when at limit', () => {
+    const result = checkDailyTradeLimit(5, 5);
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toContain('5/5');
+  });
+
+  it('should block when over limit', () => {
+    expect(checkDailyTradeLimit(10, 5).allowed).toBe(false);
+  });
+
+  it('should allow 0 trades against any positive limit', () => {
+    expect(checkDailyTradeLimit(0, 1).allowed).toBe(true);
+  });
+});
+
+describe('checkCooldown', () => {
+  it('should allow when no previous trade', () => {
+    expect(checkCooldown(null, 30).allowed).toBe(true);
+  });
+
+  it('should allow when cooldown has elapsed', () => {
+    const thirtyOneMinutesAgo = Date.now() - 31 * 60 * 1000;
+    expect(checkCooldown(thirtyOneMinutesAgo, 30).allowed).toBe(true);
+  });
+
+  it('should block when within cooldown', () => {
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    const result = checkCooldown(fiveMinutesAgo, 30);
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toContain('Cooldown');
+    expect(result.reason).toContain('minute');
+  });
+
+  it('should allow with 0 minute cooldown', () => {
+    const justNow = Date.now() - 1000;
+    expect(checkCooldown(justNow, 0).allowed).toBe(true);
+  });
+
+  it('should block exact cooldown boundary', () => {
+    const exactlyThirtyMinAgo = Date.now() - 30 * 60 * 1000 + 100;
+    expect(checkCooldown(exactlyThirtyMinAgo, 30).allowed).toBe(false);
+  });
+});
+
+describe('checkDailyLossLimit', () => {
+  it('should allow when no losses', () => {
+    expect(checkDailyLossLimit(1000, 1050, 0.15).allowed).toBe(true);
+  });
+
+  it('should allow small losses under limit', () => {
+    expect(checkDailyLossLimit(1000, 900, 0.15).allowed).toBe(true);
+  });
+
+  it('should block when loss exceeds limit', () => {
+    const result = checkDailyLossLimit(1000, 840, 0.15);
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toContain('loss limit');
+  });
+
+  it('should block at exactly 15% loss', () => {
+    expect(checkDailyLossLimit(1000, 850, 0.15).allowed).toBe(false);
+  });
+
+  it('should allow when dayStartValue is zero', () => {
+    expect(checkDailyLossLimit(0, 100, 0.15).allowed).toBe(true);
+  });
+
+  it('should allow when portfolio gained value', () => {
+    expect(checkDailyLossLimit(1000, 1200, 0.15).allowed).toBe(true);
   });
 });

@@ -77,12 +77,14 @@ function rowToRecommendation(row: RecommendationRow): Recommendation {
 
 /**
  * Insert a new pending recommendation into the database
+ * @param userId - The user ID who owns this recommendation
  * @param rec - The pending recommendation to insert
  * @returns Promise that resolves when the row is inserted
  */
-export async function insertRecommendation(rec: PendingRecommendation): Promise<void> {
+export async function insertRecommendation(userId: string, rec: PendingRecommendation): Promise<void> {
   await db.insert(recommendations).values({
     id: rec.id,
+    userId,
     coinId: rec.coinId,
     coinSymbol: rec.coinSymbol,
     coinName: rec.coinName,
@@ -176,14 +178,16 @@ export async function updateRecommendationStatus(rec: Recommendation): Promise<v
 }
 
 /**
- * Retrieve recommendation history ordered by creation time (newest first)
+ * Retrieve recommendation history for a user, ordered by creation time (newest first)
+ * @param userId - The user ID to get recommendations for
  * @param limit - Maximum number of recommendations to return (default 20)
  * @returns Array of typed Recommendation objects
  */
-export async function getRecommendationHistory(limit: number = 20): Promise<Recommendation[]> {
+export async function getRecommendationHistory(userId: string, limit: number = 20): Promise<Recommendation[]> {
   const rows = await db
     .select()
     .from(recommendations)
+    .where(eq(recommendations.userId, userId))
     .orderBy(desc(recommendations.createdAt))
     .limit(limit);
 
@@ -191,10 +195,11 @@ export async function getRecommendationHistory(limit: number = 20): Promise<Reco
 }
 
 /**
- * Expire all pending recommendations whose expiresAt timestamp has passed
+ * Expire all pending recommendations whose expiresAt timestamp has passed for a user
+ * @param userId - The user ID whose recommendations to expire
  * @returns The number of recommendations that were expired
  */
-export async function expireStaleRecommendations(): Promise<number> {
+export async function expireStaleRecommendations(userId: string): Promise<number> {
   const now = Date.now();
 
   const result = await db
@@ -202,6 +207,7 @@ export async function expireStaleRecommendations(): Promise<number> {
     .set({ status: 'expired' })
     .where(
       and(
+        eq(recommendations.userId, userId),
         eq(recommendations.status, 'pending'),
         lte(recommendations.expiresAt, now)
       )

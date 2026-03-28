@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { portfolioItems } from '@/lib/db/schema';
 import { rateLimitMiddleware } from '@/lib/maestro/rate-limiter';
 import { generateId } from '@/lib/utils';
+import { getAuthUserId, unauthorized } from '@/lib/auth-guard';
 import { z } from 'zod';
 
 const addItemSchema = z.object({
@@ -14,7 +16,7 @@ const addItemSchema = z.object({
 });
 
 /**
- * GET /api/portfolio — List all portfolio items
+ * GET /api/portfolio — List portfolio items for the authenticated user
  * @param request - Incoming request
  * @returns JSON array of portfolio items
  */
@@ -22,8 +24,11 @@ export async function GET(request: Request): Promise<NextResponse> {
   const rateLimited = rateLimitMiddleware(request);
   if (rateLimited) return rateLimited;
 
+  const userId = await getAuthUserId();
+  if (!userId) return unauthorized();
+
   try {
-    const items = await db.select().from(portfolioItems);
+    const items = await db.select().from(portfolioItems).where(eq(portfolioItems.userId, userId));
     return NextResponse.json(items);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
@@ -40,6 +45,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   const rateLimited = rateLimitMiddleware(request);
   if (rateLimited) return rateLimited;
 
+  const userId = await getAuthUserId();
+  if (!userId) return unauthorized();
+
   try {
     const body = await request.json();
     const parsed = addItemSchema.safeParse(body);
@@ -53,6 +61,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const item = {
       id: generateId(),
+      userId,
       ...parsed.data,
       addedAt: new Date(),
     };
