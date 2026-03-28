@@ -8,13 +8,14 @@ import {
   TrendingUp, Loader2, Clock, CheckCircle2, XCircle, AlertTriangle, Timer,
 } from 'lucide-react';
 import AutonomousCyclePanel from '@/components/autonomous-cycle-panel';
+import { AgentAvatar } from '@/components/agent-avatar';
 import type { Recommendation } from '@/lib/types/recommendation';
 
 /** Badge styles for recommendation status */
 const STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+  pending: 'bg-[#ffa726]/10 text-[#ffa726] border-[#ffa726]/20',
   approved: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  executed: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+  executed: 'bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/20',
   rejected: 'bg-red-500/10 text-red-500 border-red-500/20',
   expired: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
 };
@@ -90,6 +91,7 @@ function RecommendationCard({ rec }: { rec: Recommendation }) {
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
+          <AgentAvatar agentId="advisor" size="sm" />
           <span className="font-medium">{rec.coinName}</span>
           <span className="text-xs text-muted-foreground font-mono">{rec.coinSymbol}</span>
           <span className={cn(
@@ -154,21 +156,24 @@ function RecommendationCard({ rec }: { rec: Recommendation }) {
       {/* Approve/Reject buttons for pending */}
       {rec.status === 'pending' && (
         <div className="flex gap-2 pt-3 border-t border-border">
-          <button
-            onClick={() => handleAction('approve')}
-            disabled={isActing}
-            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isActing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-            Approve Trade
-          </button>
+          {rec.action !== 'hold' && (
+            <button
+              onClick={() => handleAction('approve')}
+              disabled={isActing}
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isActing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              Approve Trade
+            </button>
+          )}
+
           <button
             onClick={() => handleAction('reject')}
             disabled={isActing}
             className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <XCircle className="h-4 w-4" />
-            Reject
+            {rec.action === 'hold' ? 'Dismiss' : 'Reject'}
           </button>
         </div>
       )}
@@ -216,7 +221,7 @@ export default function RecommendationsPage() {
     <div>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+        <h1 className="text-2xl font-display font-bold tracking-wide flex items-center gap-2">
           <TrendingUp className="h-6 w-6 text-primary" />
           Trade Recommendations
         </h1>
@@ -246,7 +251,7 @@ export default function RecommendationsPage() {
           <button
             type="submit"
             disabled={isAnalyzing}
-            className="rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg bg-primary px-5 py-2.5 text-sm font-display font-bold tracking-wider text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isAnalyzing ? (
               <span className="flex items-center gap-2">

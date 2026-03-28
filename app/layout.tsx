@@ -20,11 +20,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className="min-h-screen">
         <Providers>
           <ThemeProvider>
             <Navbar />
-            <main className="mx-auto max-w-7xl px-4 py-6">
+            <main className="mx-auto max-w-7xl px-4 py-6 animate-fade-in">
               {children}
             </main>
           </ThemeProvider>

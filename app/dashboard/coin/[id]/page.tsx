@@ -84,7 +84,7 @@ export default function CoinDetailPage() {
           unoptimized
         />
         <div>
-          <h1 className="text-2xl font-bold">{coin.name}</h1>
+          <h1 className="text-2xl font-display font-bold tracking-wide">{coin.name}</h1>
           <span className="text-muted-foreground uppercase">{coin.symbol}</span>
         </div>
         <div className="ml-auto text-right">
@@ -123,7 +123,7 @@ export default function CoinDetailPage() {
 
       {coin.description.en && (
         <div className="mt-6">
-          <h2 className="text-lg font-bold mb-2">About {coin.name}</h2>
+          <h2 className="text-lg font-display font-bold tracking-wide mb-2">About {coin.name}</h2>
           <div
             className="text-sm text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
             dangerouslySetInnerHTML={{ __html: coin.description.en.split('. ').slice(0, 5).join('. ') + '.' }}
@@ -145,8 +145,8 @@ function StatCard({ label, value, colored }: { label: string; value: string; col
   const isNegative = value.startsWith('-');
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="text-xs text-muted-foreground mb-1">{label}</div>
+    <div className="score-card rounded-lg border border-border/50 bg-card p-4 overflow-hidden">
+      <div className="text-[10px] font-display font-medium uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
       <div
         className={`font-mono text-sm font-medium ${
           colored && isPositive

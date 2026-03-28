@@ -37,9 +37,14 @@ export async function executeTrade(input: ExecuteTradeInput): Promise<ExecuteTra
   // Approve the recommendation (state transition: pending → approved)
   const approved = approvePending(pending);
 
-  // Fetch live execution price
-  const priceData = await getSimplePrice(pending.coinId);
-  const executionPrice = priceData[pending.coinId]?.usd ?? pending.currentPrice;
+  // Fetch live execution price — fall back to recommendation price if API fails
+  let executionPrice = pending.currentPrice;
+  try {
+    const priceData = await getSimplePrice(pending.coinId);
+    executionPrice = priceData[pending.coinId]?.usd ?? pending.currentPrice;
+  } catch {
+    // CoinGecko rate-limited or unavailable — use the price from the recommendation
+  }
 
   // Clamp trade amount to maxTradePct of current balance
   const portfolio = await getOrCreatePortfolio(userId);

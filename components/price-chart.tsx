@@ -55,9 +55,9 @@ export function PriceChart({ coinId }: PriceChartProps) {
     chartRef.current = chart;
 
     const areaSeries = chart.addAreaSeries({
-      lineColor: '#6366f1',
-      topColor: 'rgba(99, 102, 241, 0.4)',
-      bottomColor: 'rgba(99, 102, 241, 0.0)',
+      lineColor: '#00d4ff',
+      topColor: 'rgba(0, 212, 255, 0.4)',
+      bottomColor: 'rgba(0, 212, 255, 0.0)',
       lineWidth: 2,
     });
 
@@ -110,8 +110,8 @@ export function PriceChart({ coinId }: PriceChartProps) {
             onClick={() => setActiveDays(days)}
             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
               activeDays === days
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-accent'
+                ? 'bg-primary text-primary-foreground font-display text-xs tracking-wider'
+                : 'bg-muted/50 text-muted-foreground hover:bg-primary/10 hover:text-primary font-display text-xs tracking-wider'
             }`}
           >
             {label}

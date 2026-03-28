@@ -33,7 +33,7 @@ export default function VirtualPortfolioPage() {
     <div>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+        <h1 className="text-2xl font-display font-bold tracking-wide flex items-center gap-2">
           <Wallet className="h-6 w-6 text-primary" />
           Virtual Portfolio
         </h1>
@@ -55,22 +55,22 @@ export default function VirtualPortfolioPage() {
       {/* Summary cards */}
       {portfolio && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="rounded-lg border border-border bg-card p-4">
-            <div className="text-xs text-muted-foreground uppercase mb-1">Total Value</div>
+          <div className="score-card rounded-lg border border-border/50 bg-card p-4 overflow-hidden">
+            <div className="text-[10px] font-display font-medium uppercase tracking-wider text-muted-foreground mb-1">Total Value</div>
             <div className="text-xl font-bold font-mono">{formatCurrency(totalValue)}</div>
           </div>
-          <div className="rounded-lg border border-border bg-card p-4">
-            <div className="text-xs text-muted-foreground uppercase mb-1">Cash Balance</div>
+          <div className="score-card rounded-lg border border-border/50 bg-card p-4 overflow-hidden">
+            <div className="text-[10px] font-display font-medium uppercase tracking-wider text-muted-foreground mb-1">Cash Balance</div>
             <div className="text-xl font-bold font-mono">{formatCurrency(portfolio.balanceUsd)}</div>
           </div>
-          <div className="rounded-lg border border-border bg-card p-4">
-            <div className="text-xs text-muted-foreground uppercase mb-1">Total P&L</div>
+          <div className="score-card rounded-lg border border-border/50 bg-card p-4 overflow-hidden">
+            <div className="text-[10px] font-display font-medium uppercase tracking-wider text-muted-foreground mb-1">Total P&L</div>
             <div className={cn('text-xl font-bold font-mono', isProfitable ? 'text-success' : 'text-destructive')}>
               {isProfitable ? '+' : ''}{formatCurrency(totalPnl)}
             </div>
           </div>
-          <div className="rounded-lg border border-border bg-card p-4">
-            <div className="text-xs text-muted-foreground uppercase mb-1">Return</div>
+          <div className="score-card rounded-lg border border-border/50 bg-card p-4 overflow-hidden">
+            <div className="text-[10px] font-display font-medium uppercase tracking-wider text-muted-foreground mb-1">Return</div>
             <div className={cn('text-xl font-bold font-mono flex items-center gap-1', isProfitable ? 'text-success' : 'text-destructive')}>
               {isProfitable ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
               {formatPercent(totalPnlPercent)}

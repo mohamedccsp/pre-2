@@ -178,13 +178,13 @@ export default function AutonomousCyclePanel() {
   }
 
   return (
-    <div className="mb-6 rounded-lg border border-primary/20 bg-card overflow-hidden">
+    <div className="mb-6 rounded-lg neon-border bg-card overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-2">
           <Zap className="h-5 w-5 text-primary" />
-          <span className="font-semibold">Autonomous Trading</span>
-          <span className="text-[10px] font-medium uppercase rounded-full border border-primary/30 px-2 py-0.5 text-primary">
+          <span className="font-display font-bold tracking-wide">Autonomous Trading</span>
+          <span className="text-[10px] font-display font-bold uppercase tracking-wider rounded-full border border-primary/30 px-2 py-0.5 text-primary">
             Level 3
           </span>
         </div>
@@ -360,7 +360,7 @@ export default function AutonomousCyclePanel() {
         <button
           onClick={runAutonomousCycle}
           disabled={isRunningCycle || config?.killSwitchActive}
-          className="w-full flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-display font-bold tracking-wider text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isRunningCycle ? (
             <>

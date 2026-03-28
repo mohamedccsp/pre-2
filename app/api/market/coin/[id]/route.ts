@@ -26,7 +26,8 @@ export async function GET(
     }
 
     const data = await getCoinDetail(parsed.data);
-    return NextResponse.json(data);
+    const headers = { 'Cache-Control': 'public, s-maxage=180, stale-while-revalidate=60' };
+    return NextResponse.json(data, { headers });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json({ error: message }, { status: 500 });

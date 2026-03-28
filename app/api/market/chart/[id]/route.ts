@@ -39,11 +39,11 @@ export async function GET(
 
     if (type === 'ohlc') {
       const data = await getOHLC(parsedId.data, Number(days));
-      return NextResponse.json(data);
+      return NextResponse.json(data, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=120" } });
     }
 
     const data = await getMarketChart(parsedId.data, days);
-    return NextResponse.json(data);
+    return NextResponse.json(data, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=120" } });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json({ error: message }, { status: 500 });

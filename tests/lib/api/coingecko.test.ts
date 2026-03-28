@@ -68,7 +68,8 @@ describe('CoinGecko API Client', () => {
       const result = await getCoinsMarkets(20, 1);
       expect(result).toEqual(mockData);
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/coins/markets?vs_currency=usd')
+        expect.stringContaining("/coins/markets?vs_currency=usd"),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
     });
   });

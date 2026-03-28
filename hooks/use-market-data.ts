@@ -22,22 +22,30 @@ export function useMarketData() {
      */
     async function fetchCoins() {
       setLoading(true);
-      try {
-        const response = await fetch('/api/market/coins');
-        if (!response.ok) throw new Error('Failed to fetch coins');
-        const data = await response.json() as CoinMarket[];
-        if (!cancelled) {
-          setCoins(data);
+      const MAX_ATTEMPTS = 3;
 
-          // Start WebSocket for live prices
-          const assets = data.slice(0, 20).map((coin) => mapFromGeckoId(coin.id));
-          cleanupRef.current?.();
-          cleanupRef.current = createPriceStream(assets, (prices) => {
-            updateLivePrices(prices);
-          });
-        }
-      } catch (err) {
-        if (!cancelled) {
+      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        try {
+          const response = await fetch('/api/market/coins');
+          if (!response.ok) throw new Error('Failed to fetch coins');
+          const data = await response.json() as CoinMarket[];
+          if (!cancelled) {
+            setCoins(data);
+
+            // Start WebSocket for live prices
+            const assets = data.slice(0, 20).map((coin) => mapFromGeckoId(coin.id));
+            cleanupRef.current?.();
+            cleanupRef.current = createPriceStream(assets, (prices) => {
+              updateLivePrices(prices);
+            });
+          }
+          return; // Success — exit retry loop
+        } catch (err) {
+          if (cancelled) return;
+          if (attempt < MAX_ATTEMPTS - 1) {
+            await new Promise((r) => setTimeout(r, 2000 * Math.pow(2, attempt)));
+            continue;
+          }
           setError(err instanceof Error ? err.message : 'Unknown error');
         }
       }

@@ -30,31 +30,40 @@ export const useVirtualPortfolioStore = create<VirtualPortfolioState>((set) => (
 
   fetchPortfolio: async () => {
     set({ isLoading: true, error: null });
-    try {
-      const response = await authFetch('/api/virtual-portfolio');
-      if (!response.ok) throw new Error('Failed to fetch virtual portfolio');
+    const MAX_ATTEMPTS = 3;
 
-      const data = await response.json() as {
-        portfolio: VirtualPortfolio;
-        holdings: VirtualHolding[];
-        trades: VirtualTrade[];
-        totalValue: number;
-        totalPnl: number;
-        totalPnlPercent: number;
-      };
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      try {
+        const response = await authFetch('/api/virtual-portfolio');
+        if (!response.ok) throw new Error('Failed to fetch virtual portfolio');
 
-      set({
-        portfolio: data.portfolio,
-        holdings: data.holdings,
-        trades: data.trades,
-        totalValue: data.totalValue,
-        totalPnl: data.totalPnl,
-        totalPnlPercent: data.totalPnlPercent,
-        isLoading: false,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      set({ error: message, isLoading: false });
+        const data = await response.json() as {
+          portfolio: VirtualPortfolio;
+          holdings: VirtualHolding[];
+          trades: VirtualTrade[];
+          totalValue: number;
+          totalPnl: number;
+          totalPnlPercent: number;
+        };
+
+        set({
+          portfolio: data.portfolio,
+          holdings: data.holdings,
+          trades: data.trades,
+          totalValue: data.totalValue,
+          totalPnl: data.totalPnl,
+          totalPnlPercent: data.totalPnlPercent,
+          isLoading: false,
+        });
+        return; // Success
+      } catch (error) {
+        if (attempt < MAX_ATTEMPTS - 1) {
+          await new Promise((r) => setTimeout(r, 2000 * Math.pow(2, attempt)));
+          continue;
+        }
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        set({ error: message, isLoading: false });
+      }
     }
   },
 

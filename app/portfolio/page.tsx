@@ -35,7 +35,7 @@ export default function PortfolioPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Portfolio</h1>
+          <h1 className="text-2xl font-display font-bold tracking-wide">Portfolio</h1>
           <p className="text-muted-foreground mt-1">Track your holdings and performance</p>
         </div>
         <button
@@ -49,8 +49,8 @@ export default function PortfolioPage() {
 
       {/* Portfolio Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-xs text-muted-foreground mb-1">Total Value</div>
+        <div className="score-card rounded-lg border border-border/50 bg-card p-4 overflow-hidden">
+          <div className="text-[10px] font-display font-medium uppercase tracking-wider text-muted-foreground mb-1">Total Value</div>
           <div className="text-lg font-bold font-mono">{formatCurrency(totalValue)}</div>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">

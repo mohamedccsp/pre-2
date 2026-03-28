@@ -2,7 +2,7 @@ import { executeAgent } from './orchestrator';
 import { routeMessage, MESSAGE_TYPES } from './message-bus';
 import { computeRSI, computeSMA, parseAnalysisResponse } from './analyst';
 import { parseAdvisorResponse } from './advisor';
-import { getMarketChart, getOHLC, getSimplePrice, getCoinDetail } from '@/lib/api/coingecko';
+import { getMarketChart, getOHLC, getCoinDetail } from '@/lib/api/coingecko';
 import { getOrCreatePortfolio } from '@/lib/virtual-portfolio/repository';
 import { generateId } from '@/lib/utils';
 import type { PendingRecommendation } from '@/lib/types/recommendation';
@@ -41,15 +41,14 @@ export async function executeAnalysisChain(input: ChainInput): Promise<ChainOutp
   });
 
   // Step 2: Fetch market data and compute indicators
-  const [ohlcData, chartData, coinDetail, priceData] = await Promise.all([
+  const [ohlcData, chartData, coinDetail] = await Promise.all([
     getOHLC(coinId, 30),
     getMarketChart(coinId, '30'),
     getCoinDetail(coinId),
-    getSimplePrice(coinId),
   ]);
 
   const closes = ohlcData.map((p) => p.close);
-  const currentPrice = priceData[coinId]?.usd ?? closes[closes.length - 1] ?? 0;
+  const currentPrice = coinDetail.market_data.current_price.usd ?? closes[closes.length - 1] ?? 0;
   const coinSymbol = input.coinSymbol || coinDetail.symbol.toUpperCase();
   const coinName = input.coinName || coinDetail.name;
 

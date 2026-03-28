@@ -34,14 +34,23 @@ export const useRecommendationsStore = create<RecommendationsState>((set, get) =
 
   fetchRecommendations: async () => {
     set({ isLoading: true, error: null });
-    try {
-      const response = await authFetch('/api/agents/recommendations');
-      if (!response.ok) throw new Error('Failed to fetch recommendations');
-      const data = await response.json() as Recommendation[];
-      set({ recommendations: data, isLoading: false });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      set({ error: message, isLoading: false });
+    const MAX_ATTEMPTS = 3;
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      try {
+        const response = await authFetch('/api/agents/recommendations');
+        if (!response.ok) throw new Error('Failed to fetch recommendations');
+        const data = await response.json() as Recommendation[];
+        set({ recommendations: data, isLoading: false });
+        return; // Success
+      } catch (error) {
+        if (attempt < MAX_ATTEMPTS - 1) {
+          await new Promise((r) => setTimeout(r, 2000 * Math.pow(2, attempt)));
+          continue;
+        }
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        set({ error: message, isLoading: false });
+      }
     }
   },
 

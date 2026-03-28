@@ -1,4 +1,5 @@
 import type { CoinCapAsset, LivePrice } from '@/lib/types/market';
+import { sleep } from '@/lib/utils';
 
 const REST_BASE = 'https://api.coincap.io/v2';
 const WS_URL = 'wss://ws.coincap.io/prices?assets=';
@@ -52,12 +53,19 @@ export function mapFromGeckoId(geckoId: string): string {
  * @returns Array of CoinCap asset data
  */
 export async function getAssets(limit = 20): Promise<CoinCapAsset[]> {
-  const response = await fetch(`${REST_BASE}/assets?limit=${limit}`);
-  if (!response.ok) {
-    throw new Error(`CoinCap API error: ${response.status}`);
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await fetch(`${REST_BASE}/assets?limit=${limit}`);
+      if (!response.ok) throw new Error(`CoinCap API error: ${response.status}`);
+      const data = await response.json() as { data: CoinCapAsset[] };
+      return data.data;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt < 2) await sleep(1000 * Math.pow(2, attempt));
+    }
   }
-  const data = await response.json() as { data: CoinCapAsset[] };
-  return data.data;
+  throw lastError!;
 }
 
 /**
@@ -70,12 +78,19 @@ export async function getAssetHistory(
   id: string,
   interval = 'h1'
 ): Promise<{ priceUsd: string; time: number }[]> {
-  const response = await fetch(`${REST_BASE}/assets/${encodeURIComponent(id)}/history?interval=${interval}`);
-  if (!response.ok) {
-    throw new Error(`CoinCap API error: ${response.status}`);
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await fetch(`${REST_BASE}/assets/${encodeURIComponent(id)}/history?interval=${interval}`);
+      if (!response.ok) throw new Error(`CoinCap API error: ${response.status}`);
+      const data = await response.json() as { data: { priceUsd: string; time: number }[] };
+      return data.data;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt < 2) await sleep(1000 * Math.pow(2, attempt));
+    }
   }
-  const data = await response.json() as { data: { priceUsd: string; time: number }[] };
-  return data.data;
+  throw lastError!;
 }
 
 /** Callback type for live price updates */
