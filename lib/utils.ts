@@ -58,3 +58,15 @@ export function generateId(): string {
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/**
+ * Strip markdown code fences from an LLM response string
+ * @param raw - Raw LLM response that may contain code fences
+ * @returns Cleaned string with code fences removed
+ */
+export function stripCodeFences(raw: string): string {
+  return raw
+    .replace(/^```(?:json)?\s*\n?/gm, '')
+    .replace(/\n?```\s*$/gm, '')
+    .trim();
+}

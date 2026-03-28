@@ -4,12 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ThemeToggle } from './theme-toggle';
 import { cn } from '@/lib/utils';
-import { BarChart3, Briefcase, Bot } from 'lucide-react';
+import { BarChart3, Briefcase, Bot, TrendingUp, Wallet } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: BarChart3 },
   { href: '/portfolio', label: 'Portfolio', icon: Briefcase },
   { href: '/agents', label: 'Agents', icon: Bot },
+  { href: '/agents/recommendations', label: 'Recommendations', icon: TrendingUp },
+  { href: '/virtual-portfolio', label: 'Virtual Portfolio', icon: Wallet },
 ];
 
 /**

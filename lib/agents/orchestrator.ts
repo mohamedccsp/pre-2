@@ -1,11 +1,15 @@
 import { checkPromptInjection } from '@/lib/maestro/validator';
 import { logAuditEntry, hashForAudit } from '@/lib/maestro/audit-logger';
 import { researcher } from './researcher';
+import { analyst } from './analyst';
+import { advisor } from './advisor';
 import type { Agent, AgentInput, AgentOutput } from '@/lib/types/agent';
 
 /** Registry of available agents */
 const agents: Record<string, Agent> = {
   researcher,
+  analyst,
+  advisor,
 };
 
 /**
