@@ -20,7 +20,11 @@
       "Bash(npx drizzle-kit:*)",
       "Bash(npx vitest:*)",
       "Bash(npx next:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(curl:*)",
+      "Bash(echo:*)",
+      "Bash(taskkill:*)",
+      "mcp__plugin_claude-mem_mcp-search__get_observations"
     ]
   }
 }
